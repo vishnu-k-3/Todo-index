@@ -1,226 +1,648 @@
 <!DOCTYPE html>
-<html lang="en" class="dark">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Daily Tasks</title>
+  <title>Vishnu's On-Call SOP & Daily Planner</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            linen: '#F7F5F0',
+            cream: '#FFFFFF',
+            stoneSoft: '#EFECE6',
+            borderWarm: '#E2DDD3',
+            espresso: '#2B2927',
+            taupe: '#6E6A63',
+            sage: {
+              DEFAULT: '#3D6352',
+              hover: '#315143',
+              tint: '#EBF2EE',
+              border: '#C6D9CE'
+            },
+            ochre: {
+              DEFAULT: '#C27D38',
+              tint: '#FBF3E8',
+              border: '#EAD4B6'
+            },
+            terracotta: {
+              DEFAULT: '#B85141',
+              tint: '#FBECE9',
+              border: '#E9C5BE'
+            }
+          },
+          fontFamily: {
+            serif: ['Fraunces', 'Georgia', 'serif'],
+            sans: ['Plus Jakarta Sans', '-apple-system', 'BlinkMacSystemFont', 'sans-serif']
+          }
+        }
+      }
+    }
+  </script>
   <style>
-    body { font-family: 'Inter', sans-serif; }
-    .task-enter { animation: fadeIn 0.2s ease-out; }
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(4px); }
-      to { opacity: 1; transform: translateY(0); }
+    body {
+      background-color: #F7F5F0;
+      color: #2B2927;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+    }
+    /* Custom tactile checkbox */
+    .custom-check {
+      appearance: none;
+      -webkit-appearance: none;
+      width: 1.2rem;
+      height: 1.2rem;
+      border: 1.5px solid #B8B2A6;
+      border-radius: 0.35rem;
+      background-color: #FFFFFF;
+      cursor: pointer;
+      display: inline-grid;
+      place-content: center;
+      transition: all 0.15s ease;
+      flex-shrink: 0;
+    }
+    .custom-check:hover {
+      border-color: #3D6352;
+    }
+    .custom-check:checked {
+      background-color: #3D6352;
+      border-color: #3D6352;
+    }
+    .custom-check:checked::before {
+      content: "";
+      width: 0.65rem;
+      height: 0.4rem;
+      border-left: 2px solid #FFFFFF;
+      border-bottom: 2px solid #FFFFFF;
+      transform: rotate(-45deg) translate(1px, -1px);
+    }
+    .task-item {
+      transition: background-color 0.15s ease, opacity 0.15s ease;
     }
   </style>
 </head>
-<body class="bg-slate-950 text-slate-100 min-h-screen py-8 px-4 sm:px-6 flex flex-col justify-between">
+<body class="min-h-screen flex flex-col justify-between selection:bg-sage-tint selection:text-sage">
 
-  <div class="max-w-lg w-full mx-auto">
-    <!-- Header & Progress -->
-    <header class="mb-6">
-      <div class="flex items-center justify-between mb-2">
+  <!-- Main Wrapper -->
+  <div class="max-w-6xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
+
+    <!-- Top Editorial Header -->
+    <header class="bg-cream border border-borderWarm rounded-2xl p-6 mb-8 shadow-sm">
+      <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 class="text-2xl font-bold tracking-tight text-white">Daily Focus</h1>
-          <p id="current-date" class="text-xs text-slate-400 mt-0.5"></p>
+          <div class="flex flex-wrap items-center gap-2.5 mb-2">
+            <span class="px-3 py-1 rounded-full text-xs font-semibold bg-sage-tint text-sage border border-sage-border">
+              Rotation Owner: Vishnu
+            </span>
+            <span id="window-badge" class="px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1.5 bg-sage-tint text-sage border border-sage-border">
+              <span id="window-dot" class="w-2 h-2 rounded-full bg-sage"></span>
+              <span id="window-status-text">Checking IST Window...</span>
+            </span>
+          </div>
+          <h1 class="font-serif text-2xl sm:text-3xl font-semibold text-espresso tracking-tight">
+            Vishnu’s On-Call SOP & Daily Planner
+          </h1>
+          <p class="text-sm text-taupe mt-1">
+             separated checklists for Daily, Weekly, and Monthly routines alongside the Incident Response Playbook.
+          </p>
         </div>
-        <div class="text-right">
-          <span id="progress-text" class="text-sm font-semibold text-indigo-400">0 / 0 done</span>
+
+        <!-- Subtle IST Time & Overall Progress -->
+        <div class="flex sm:flex-row md:flex-col items-start sm:items-center md:items-end justify-between gap-3 bg-linen border border-borderWarm px-4 py-3 rounded-xl shrink-0">
+          <div class="text-left md:text-right">
+            <div id="ist-clock" class="text-base font-bold text-espresso tracking-tight">--:-- IST</div>
+            <div id="ist-date" class="text-xs text-taupe">Loading date...</div>
+          </div>
+          <div class="w-36 sm:w-44">
+            <div class="flex justify-between text-xs font-medium mb-1">
+              <span class="text-taupe">Checklist Progress</span>
+              <span id="overall-progress-text" class="text-sage font-semibold">0 / 0</span>
+            </div>
+            <div class="w-full bg-stoneSoft h-2 rounded-full overflow-hidden border border-borderWarm">
+              <div id="overall-progress-bar" class="bg-sage h-full transition-all duration-300 w-0"></div>
+            </div>
+          </div>
         </div>
-      </div>
-      <!-- Progress Bar -->
-      <div class="w-full bg-slate-800 h-2 rounded-full overflow-hidden">
-        <div id="progress-bar" class="bg-indigo-500 h-full transition-all duration-300 w-0"></div>
       </div>
     </header>
 
-    <!-- Add Task Form -->
-    <form id="todo-form" class="mb-6 flex gap-2">
-      <input 
-        type="text" 
-        id="todo-input" 
-        placeholder="Add a daily task..." 
-        required
-        autocomplete="off"
-        class="flex-1 bg-slate-900 border border-slate-800 rounded-xl px-4 py-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition"
-      >
-      <button 
-        type="submit" 
-        class="bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700 text-white font-medium px-5 py-3 rounded-xl text-sm transition shadow-sm"
-      >
-        Add
-      </button>
-    </form>
+    <!-- Main 2-Column Layout -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
 
-    <!-- Filter Tabs -->
-    <div class="flex items-center justify-between border-b border-slate-800 pb-3 mb-4 text-xs font-medium text-slate-400">
-      <div class="flex gap-2">
-        <button data-filter="all" class="filter-btn px-3 py-1.5 rounded-lg bg-slate-800 text-white transition">All</button>
-        <button data-filter="active" class="filter-btn px-3 py-1.5 rounded-lg hover:text-slate-200 transition">Pending</button>
-        <button data-filter="completed" class="filter-btn px-3 py-1.5 rounded-lg hover:text-slate-200 transition">Completed</button>
+      <!-- LEFT COLUMN (7 cols): ACTIONABLE CHECKLISTS BY FREQUENCY + CUSTOM TODOS -->
+      <div class="lg:col-span-7 space-y-6">
+
+        <!-- Add Custom Task Bar -->
+        <section class="bg-cream border border-borderWarm rounded-2xl p-5 shadow-sm">
+          <h2 class="font-serif text-lg font-medium text-espresso mb-3">Add a Task or Note to Checklist</h2>
+          <form id="add-task-form" class="flex flex-col sm:flex-row gap-2.5">
+            <input 
+              type="text" 
+              id="task-input" 
+              placeholder="Write a task (e.g., Check Ravi's override email, Review DB alert)..." 
+              required
+              autocomplete="off"
+              class="flex-1 bg-linen border border-borderWarm rounded-xl px-4 py-2.5 text-sm text-espresso placeholder-taupe/70 focus:outline-none focus:border-sage focus:bg-cream transition"
+            >
+            <div class="flex gap-2">
+              <select 
+                id="task-group-select" 
+                aria-label="Choose Checklist Group"
+                class="bg-linen border border-borderWarm rounded-xl px-3 py-2.5 text-xs sm:text-sm font-medium text-espresso focus:outline-none focus:border-sage cursor-pointer"
+              >
+                <option value="custom">My Custom Tasks</option>
+                <option value="daily">Daily Checks</option>
+                <option value="weekly">Weekly Checks</option>
+                <option value="monthly">Monthly Checks</option>
+              </select>
+              <button 
+                type="submit" 
+                class="bg-sage hover:bg-sage-hover text-white font-medium px-5 py-2.5 rounded-xl text-sm transition shadow-sm shrink-0"
+              >
+                Add
+              </button>
+            </div>
+          </form>
+        </section>
+
+        <!-- 1. MY CUSTOM TASKS (GENERAL / AD-HOC TODOS) -->
+        <section class="bg-cream border border-borderWarm rounded-2xl p-5 shadow-sm">
+          <div class="flex items-center justify-between border-b border-borderWarm pb-3 mb-3">
+            <div class="flex items-center gap-2.5">
+              <span class="w-2.5 h-2.5 rounded-full bg-espresso"></span>
+              <h2 class="font-serif text-lg font-medium text-espresso">My Custom Tasks</h2>
+              <span id="badge-custom" class="text-xs font-medium px-2 py-0.5 rounded-full bg-stoneSoft text-taupe">0/0</span>
+            </div>
+            <button 
+              type="button" 
+              id="clear-custom-done-btn"
+              class="text-xs font-medium text-terracotta hover:underline hidden"
+            >
+              Clear Completed
+            </button>
+          </div>
+          <p class="text-xs text-taupe mb-3">Personal daily tasks, ad-hoc follow-ups, and one-off reminders.</p>
+          <ul id="list-custom" class="space-y-2"></ul>
+          <div id="empty-custom" class="text-center py-6 bg-linen/60 rounded-xl border border-dashed border-borderWarm text-xs text-taupe hidden">
+            No custom tasks right now. Use the box above to add your daily things!
+          </div>
+        </section>
+
+        <!-- 2. DAILY CHECKS (EVERY DAY / SCRUM) -->
+        <section class="bg-cream border border-borderWarm rounded-2xl p-5 shadow-sm">
+          <div class="flex items-center justify-between border-b border-borderWarm pb-3 mb-3">
+            <div class="flex items-center gap-2.5">
+              <span class="px-2.5 py-0.5 rounded-md text-xs font-semibold bg-sage-tint text-sage border border-sage-border">
+                Every Day
+              </span>
+              <h2 class="font-serif text-lg font-medium text-espresso">Daily Checks & Scrum</h2>
+              <span id="badge-daily" class="text-xs font-medium px-2 py-0.5 rounded-full bg-stoneSoft text-taupe">0/0</span>
+            </div>
+            <button 
+              type="button" 
+              onclick="resetGroup('daily', 'Daily Checks')"
+              class="text-xs font-medium text-sage hover:text-sage-hover bg-sage-tint px-3 py-1 rounded-lg border border-sage-border transition"
+            >
+              Reset Daily
+            </button>
+          </div>
+          <p class="text-xs text-taupe mb-3">Routine checks to complete every day during the morning scrum and shift window.</p>
+          <ul id="list-daily" class="space-y-2"></ul>
+        </section>
+
+        <!-- 3. WEEKLY CHECKS (EVERY MONDAY & PRE-SHIFT) -->
+        <section class="bg-cream border border-borderWarm rounded-2xl p-5 shadow-sm">
+          <div class="flex items-center justify-between border-b border-borderWarm pb-3 mb-3">
+            <div class="flex items-center gap-2.5">
+              <span class="px-2.5 py-0.5 rounded-md text-xs font-semibold bg-ochre-tint text-ochre border border-ochre-border">
+                Every Monday / Shift Start
+              </span>
+              <h2 class="font-serif text-lg font-medium text-espresso">Weekly & Pre-Shift Checks</h2>
+              <span id="badge-weekly" class="text-xs font-medium px-2 py-0.5 rounded-full bg-stoneSoft text-taupe">0/0</span>
+            </div>
+            <button 
+              type="button" 
+              onclick="resetGroup('weekly', 'Weekly Checks')"
+              class="text-xs font-medium text-ochre bg-ochre-tint hover:opacity-90 px-3 py-1 rounded-lg border border-ochre-border transition"
+            >
+              Reset Weekly
+            </button>
+          </div>
+          <p class="text-xs text-taupe mb-3">Check off every Monday morning scrum and before a new weekly on-call shift starts.</p>
+          <ul id="list-weekly" class="space-y-2"></ul>
+        </section>
+
+        <!-- 4. MONTHLY CHECKS (ONCE A MONTH) -->
+        <section class="bg-cream border border-borderWarm rounded-2xl p-5 shadow-sm">
+          <div class="flex items-center justify-between border-b border-borderWarm pb-3 mb-3">
+            <div class="flex items-center gap-2.5">
+              <span class="px-2.5 py-0.5 rounded-md text-xs font-semibold bg-stoneSoft text-espresso border border-borderWarm">
+                Once a Month
+              </span>
+              <h2 class="font-serif text-lg font-medium text-espresso">Monthly Audit</h2>
+              <span id="badge-monthly" class="text-xs font-medium px-2 py-0.5 rounded-full bg-stoneSoft text-taupe">0/0</span>
+            </div>
+            <button 
+              type="button" 
+              onclick="resetGroup('monthly', 'Monthly Checks')"
+              class="text-xs font-medium text-taupe hover:text-espresso bg-stoneSoft px-3 py-1 rounded-lg border border-borderWarm transition"
+            >
+              Reset Monthly
+            </button>
+          </div>
+          <p class="text-xs text-taupe mb-3">Monthly verification of the alerting and paging pipeline.</p>
+          <ul id="list-monthly" class="space-y-2"></ul>
+        </section>
+
       </div>
-      <button id="clear-completed" class="hover:text-rose-400 transition hidden">Clear Done</button>
-    </div>
 
-    <!-- Task List -->
-    <ul id="todo-list" class="space-y-2.5"></ul>
+      <!-- RIGHT COLUMN (5 cols): SOP PLAYBOOK, ALERT STEPS, RULES & CAUTIONS (NON-CHECKLIST) -->
+      <aside class="lg:col-span-5 space-y-6">
 
-    <!-- Empty State -->
-    <div id="empty-state" class="text-center py-12 hidden">
-      <p class="text-slate-500 text-sm">Nothing on the list right now. Add a task above!</p>
+        <!-- CARD 1: STEPS TO DO WHEN AN ALERT FIRES (NUMBERED PLAYBOOK) -->
+        <div class="bg-cream border border-borderWarm rounded-2xl p-5 shadow-sm">
+          <div class="flex items-center justify-between border-b border-borderWarm pb-3 mb-4">
+            <div>
+              <span class="text-[11px] font-bold uppercase tracking-wider text-sage block">Incident Playbook</span>
+              <h2 class="font-serif text-lg font-medium text-espresso">Steps When an Alert Fires</h2>
+            </div>
+            <span class="text-xs font-medium px-2.5 py-1 rounded-lg bg-linen border border-borderWarm text-taupe">
+              06:00 – 21:00 IST
+            </span>
+          </div>
+
+          <ol class="space-y-3.5 text-sm">
+            <li class="flex gap-3 items-start">
+              <span class="w-6 h-6 rounded-full bg-sage text-white text-xs font-bold flex items-center justify-center shrink-0 mt-0.5">1</span>
+              <div>
+                <div class="font-semibold text-espresso">0 to 5 mins: Acknowledge</div>
+                <p class="text-xs text-taupe leading-relaxed mt-0.5">
+                  Acknowledge the alert in <strong>SolarWinds</strong> and post <code class="bg-stoneSoft px-1.5 py-0.5 rounded text-espresso font-medium">"on it"</code> in the incident channel.
+                </p>
+              </div>
+            </li>
+
+            <li class="flex gap-3 items-start">
+              <span class="w-6 h-6 rounded-full bg-sage text-white text-xs font-bold flex items-center justify-center shrink-0 mt-0.5">2</span>
+              <div>
+                <div class="font-semibold text-espresso">Within 15 mins: Restore Service First</div>
+                <p class="text-xs text-taupe leading-relaxed mt-0.5">
+                  Start active work within 15 minutes. Restore service first (restart, failover, rollback); investigate root cause later.
+                </p>
+              </div>
+            </li>
+
+            <li class="flex gap-3 items-start">
+              <span class="w-6 h-6 rounded-full bg-ochre text-white text-xs font-bold flex items-center justify-center shrink-0 mt-0.5">3</span>
+              <div>
+                <div class="font-semibold text-espresso">At 15 mins: Escalate if Stuck or Customer Down</div>
+                <p class="text-xs text-taupe leading-relaxed mt-0.5">
+                  Stuck after 15 minutes or customer service is down? Call for help and <strong>tell Vishnu immediately</strong>.
+                </p>
+              </div>
+            </li>
+
+            <li class="flex gap-3 items-start">
+              <span class="w-6 h-6 rounded-full bg-sage text-white text-xs font-bold flex items-center justify-center shrink-0 mt-0.5">4</span>
+              <div>
+                <div class="font-semibold text-espresso">Every 30 mins: Status Updates</div>
+                <p class="text-xs text-taupe leading-relaxed mt-0.5">
+                  Post a progress update in the incident channel every 30 minutes (and update the customer if service is down).
+                </p>
+              </div>
+            </li>
+
+            <li class="flex gap-3 items-start">
+              <span class="w-6 h-6 rounded-full bg-sage text-white text-xs font-bold flex items-center justify-center shrink-0 mt-0.5">5</span>
+              <div>
+                <div class="font-semibold text-espresso">Resolution & Self-Recovered Alerts</div>
+                <p class="text-xs text-taupe leading-relaxed mt-0.5">
+                  Resolve in SolarWinds with a one-line note. <strong>Even if it recovered on its own:</strong> confirm health, find the cause, and record it.
+                </p>
+              </div>
+            </li>
+          </ol>
+        </div>
+
+        <!-- CARD 2: CAUTIONS & CRITICAL POLICY CALLOUTS (TERRACOTTA BOX) -->
+        <div class="bg-terracotta-tint border border-terracotta-border rounded-2xl p-5 shadow-sm space-y-3.5">
+          <div class="flex items-center gap-2 text-terracotta">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+            <h2 class="font-serif text-lg font-medium text-espresso">Cautions & Non-Negotiables</h2>
+          </div>
+
+          <div class="bg-cream/90 border border-terracotta-border rounded-xl p-3.5">
+            <div class="text-xs font-bold uppercase tracking-wider text-terracotta mb-1">Golden Rule</div>
+            <p class="text-xs text-espresso leading-relaxed font-medium">
+              "Can't respond for any reason? Say so in the channel and call the secondary or Vishnu right away. <strong>Silence is the only wrong answer.</strong>"
+            </p>
+          </div>
+
+          <div class="space-y-1.5 text-xs text-espresso">
+            <div class="font-semibold text-terracotta uppercase tracking-wider text-[11px]">Missed Pages Policy</div>
+            <p class="leading-relaxed">
+              • <strong>First miss:</strong> One-to-one with Vishnu to fix the cause.<br>
+              • <strong>Second miss (within 3 months):</strong> Written warning.
+            </p>
+          </div>
+        </div>
+
+        <!-- CARD 3: CORE BASICS & REACHABILITY NOTES -->
+        <div class="bg-cream border border-borderWarm rounded-2xl p-5 shadow-sm space-y-3">
+          <h2 class="font-serif text-lg font-medium text-espresso border-b border-borderWarm pb-2.5">
+            The Basics & Reachability Notes
+          </h2>
+
+          <div class="space-y-2.5 text-xs leading-relaxed">
+            <div class="bg-linen border border-borderWarm rounded-xl p-3">
+              <span class="font-semibold text-espresso block">Who is on call?</span>
+              <span class="text-taupe">Whoever <strong>SolarWinds</strong> shows. A verbal or WhatsApp swap does not count.</span>
+            </div>
+
+            <div class="bg-linen border border-borderWarm rounded-xl p-3">
+              <span class="font-semibold text-espresso block">Owner of the incident</span>
+              <span class="text-taupe">The weekly on-call engineer. They can summon anyone to help and stay the lead.</span>
+            </div>
+
+            <div class="bg-linen border border-borderWarm rounded-xl p-3">
+              <span class="font-semibold text-espresso block">Reachability & Equipment</span>
+              <span class="text-taupe">You don't need to be at your desk, but you must be reachable: <strong>Phone ON and LOUD</strong> (not silent or DND), laptop and hotspot with you, able to start work within 15 minutes.</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- CARD 4: IF YOU CAN'T BE AVAILABLE (LEAVE & OVERRIDE RULES) -->
+        <div class="bg-cream border border-borderWarm rounded-2xl p-5 shadow-sm space-y-3">
+          <h2 class="font-serif text-lg font-medium text-espresso border-b border-borderWarm pb-2.5">
+            Leave & Shift Coverage Rules
+          </h2>
+
+          <div class="space-y-3 text-xs leading-relaxed">
+            <div>
+              <span class="inline-block px-2 py-0.5 rounded bg-ochre-tint text-ochre border border-ochre-border font-semibold mb-1">
+                Planned Leave or Travel (3 Days Ahead)
+              </span>
+              <ol class="list-decimal list-inside text-taupe space-y-1 pl-1">
+                <li>Find a colleague to cover your shift.</li>
+                <li>Set the override in <strong>SolarWinds</strong>.</li>
+                <li>Email the team, <strong>copying Vishnu</strong>: dates, hours, reason, and who covers.</li>
+              </ol>
+            </div>
+
+            <div class="pt-2 border-t border-borderWarm">
+              <span class="inline-block px-2 py-0.5 rounded bg-terracotta-tint text-terracotta border border-terracotta-border font-semibold mb-1">
+                Sudden Issue (Power Cut, Urgent Travel, Illness)
+              </span>
+              <p class="text-taupe">
+                Call a colleague immediately, then call <strong>Vishnu</strong> if no one is free in 15 minutes. 
+                <strong class="text-espresso">The shift stays yours until the override is live in SolarWinds.</strong>
+              </p>
+            </div>
+          </div>
+        </div>
+
+      </aside>
+
     </div>
   </div>
 
-  <!-- Footer: Backup & Restore Controls -->
-  <footer class="max-w-lg w-full mx-auto mt-12 pt-4 border-t border-slate-900 flex items-center justify-between text-xs text-slate-400">
-    <span>Data saved locally in browser</span>
+  <!-- Footer: Persistence Status, Restore Defaults & JSON Backup -->
+  <footer class="max-w-6xl w-full mx-auto px-4 sm:px-6 lg:px-8 mt-10 pt-5 pb-10 border-t border-borderWarm flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-taupe">
     <div class="flex items-center gap-2">
+      <span class="w-2 h-2 rounded-full bg-sage"></span>
+      <span>Saved automatically in your browser (<code class="text-espresso font-medium">localStorage</code>)</span>
+    </div>
+
+    <div class="flex flex-wrap items-center gap-2">
+      <button 
+        id="restore-defaults-btn" 
+        type="button"
+        class="bg-cream hover:bg-stoneSoft text-espresso border border-borderWarm px-3 py-1.5 rounded-lg transition font-medium"
+        title="Re-add any missing official SOP items without deleting your custom tasks"
+      >
+        Restore Default SOP Checklists
+      </button>
+
       <button 
         id="export-btn" 
         type="button"
-        class="flex items-center gap-1.5 bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-800 px-3 py-1.5 rounded-lg transition"
+        class="flex items-center gap-1.5 bg-cream hover:bg-stoneSoft text-espresso border border-borderWarm px-3 py-1.5 rounded-lg transition font-medium"
       >
-        <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5 text-sage" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
           <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
         </svg>
-        Export JSON
+        Export JSON Backup
       </button>
 
       <label 
         for="import-input" 
-        class="flex items-center gap-1.5 bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-800 px-3 py-1.5 rounded-lg cursor-pointer transition"
+        class="flex items-center gap-1.5 bg-cream hover:bg-stoneSoft text-espresso border border-borderWarm px-3 py-1.5 rounded-lg cursor-pointer transition font-medium"
       >
-        <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5 text-ochre" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
           <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
         </svg>
-        Import JSON
+        Import JSON Backup
       </label>
       <input type="file" id="import-input" accept=".json,application/json" class="hidden">
     </div>
   </footer>
 
-  <!-- Status Toast Notification -->
-  <div id="toast" class="fixed bottom-5 right-5 bg-slate-800 border border-slate-700 text-slate-100 text-xs font-medium px-4 py-2.5 rounded-xl shadow-lg opacity-0 pointer-events-none transition-opacity duration-200"></div>
+  <!-- Subtle Toast Notification -->
+  <div id="toast" class="fixed bottom-5 right-5 z-50 bg-espresso text-linen text-xs font-medium px-4 py-2.5 rounded-xl shadow-lg opacity-0 pointer-events-none transition-opacity duration-200"></div>
 
   <script>
-    const STORAGE_KEY = 'daily_focus_todos_v1';
-    let todos = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
-    let currentFilter = 'all';
+    const STORAGE_KEY = 'vishnu_sop_planner_v2';
 
-    const form = document.getElementById('todo-form');
-    const input = document.getElementById('todo-input');
-    const list = document.getElementById('todo-list');
-    const emptyState = document.getElementById('empty-state');
-    const progressText = document.getElementById('progress-text');
-    const progressBar = document.getElementById('progress-bar');
-    const clearCompletedBtn = document.getElementById('clear-completed');
-    const filterBtns = document.querySelectorAll('.filter-btn');
+    // Clearly separated checklist items by frequency (Daily, Weekly, Monthly)
+    const DEFAULT_CHECKLISTS = [
+      // 1. DAILY CHECKS (Every Day / Scrum)
+      {
+        id: 'daily-1',
+        group: 'daily',
+        text: 'Verify no gap in today’s SolarWinds schedule (06:00–21:00 IST covered)',
+        subnote: 'Vishnu Responsibility',
+        isDefault: true,
+        completed: false
+      },
+      {
+        id: 'daily-2',
+        group: 'daily',
+        text: 'Discuss & review alerts/issues addressed during the daily scrum',
+        subnote: 'Daily Scrum',
+        isDefault: true,
+        completed: false
+      },
+      {
+        id: 'daily-3',
+        group: 'daily',
+        text: 'Confirm any new override emails received & verify override is live in SolarWinds',
+        subnote: 'Override Check',
+        isDefault: true,
+        completed: false
+      },
+      {
+        id: 'daily-4',
+        group: 'daily',
+        text: 'Review any recent customer-impacting incident (within 3 working days SLA)',
+        subnote: '3-Day Review Rule',
+        isDefault: true,
+        completed: false
+      },
+
+      // 2. WEEKLY CHECKS (Every Monday & Pre-Shift)
+      {
+        id: 'weekly-1',
+        group: 'weekly',
+        text: 'Discuss the new weekly on-call engineer in Monday morning scrum',
+        subnote: 'Monday Morning Scrum',
+        isDefault: true,
+        completed: false
+      },
+      {
+        id: 'weekly-2',
+        group: 'weekly',
+        text: 'Verify SolarWinds rotation is published 4 weeks ahead with zero gaps',
+        subnote: '4-Week Horizon',
+        isDefault: true,
+        completed: false
+      },
+      {
+        id: 'weekly-3',
+        group: 'weekly',
+        text: 'Follow up to get repeat issues fixed permanently (not just restarted)',
+        subnote: 'Permanent Fix Review',
+        isDefault: true,
+        completed: false
+      },
+      {
+        id: 'weekly-4',
+        group: 'weekly',
+        text: '[Pre-Shift] On-call name is in SolarWinds for the full week',
+        subnote: 'Before Shift Starts',
+        isDefault: true,
+        completed: false
+      },
+      {
+        id: 'weekly-5',
+        group: 'weekly',
+        text: '[Pre-Shift] Test alert reaches phone (push, SMS, call)',
+        subnote: 'Before Shift Starts',
+        isDefault: true,
+        completed: false
+      },
+      {
+        id: 'weekly-6',
+        group: 'weekly',
+        text: '[Pre-Shift] VPN, cloud console, and dashboards work properly',
+        subnote: 'Before Shift Starts',
+        isDefault: true,
+        completed: false
+      },
+      {
+        id: 'weekly-7',
+        group: 'weekly',
+        text: '[Pre-Shift] Planned absences already covered with overrides',
+        subnote: 'Before Shift Starts',
+        isDefault: true,
+        completed: false
+      },
+      {
+        id: 'weekly-8',
+        group: 'weekly',
+        text: '[Pre-Shift] Posted "Ready for on-call" in the incident channel',
+        subnote: 'Before Shift Starts',
+        isDefault: true,
+        completed: false
+      },
+
+      // 3. MONTHLY CHECKS (Once a Month)
+      {
+        id: 'monthly-1',
+        group: 'monthly',
+        text: 'Test the escalation path end-to-end (Monthly Drill)',
+        subnote: 'Once a Month',
+        isDefault: true,
+        completed: false
+      }
+    ];
+
+    // Load from localStorage or seed defaults
+    let tasks = JSON.parse(localStorage.getItem(STORAGE_KEY));
+    if (!Array.isArray(tasks) || tasks.length === 0) {
+      tasks = DEFAULT_CHECKLISTS.map(item => ({ ...item }));
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
+    }
+
+    const addForm = document.getElementById('add-task-form');
+    const taskInput = document.getElementById('task-input');
+    const groupSelect = document.getElementById('task-group-select');
+    const clearCustomDoneBtn = document.getElementById('clear-custom-done-btn');
+    const restoreDefaultsBtn = document.getElementById('restore-defaults-btn');
     const exportBtn = document.getElementById('export-btn');
     const importInput = document.getElementById('import-input');
     const toast = document.getElementById('toast');
 
-    // Display formatted current date
-    document.getElementById('current-date').textContent = new Intl.DateTimeFormat('en-US', {
-      weekday: 'long', month: 'short', day: 'numeric'
-    }).format(new Date());
-
-    function showToast(message) {
-      toast.textContent = message;
+    function showToast(msg) {
+      toast.textContent = msg;
       toast.classList.remove('opacity-0');
-      setTimeout(() => toast.classList.add('opacity-0'), 2500);
+      setTimeout(() => toast.classList.add('opacity-0'), 2600);
     }
+
+    // Live IST Clock & 06:00-21:00 Active Window Indicator
+    function updateISTClock() {
+      const now = new Date();
+      const timeStr = new Intl.DateTimeFormat('en-IN', {
+        timeZone: 'Asia/Kolkata',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true
+      }).format(now);
+
+      const dateStr = new Intl.DateTimeFormat('en-IN', {
+        timeZone: 'Asia/Kolkata',
+        weekday: 'long',
+        day: 'numeric',
+        month: 'short'
+      }).format(now);
+
+      const istHour = parseInt(new Intl.DateTimeFormat('en-US', {
+        timeZone: 'Asia/Kolkata',
+        hour: 'numeric',
+        hour12: false
+      }).format(now), 10);
+
+      const isActiveWindow = istHour >= 6 && istHour < 21;
+
+      document.getElementById('ist-clock').textContent = `${timeStr.toUpperCase()} IST`;
+      document.getElementById('ist-date').textContent = dateStr;
+
+      const badge = document.getElementById('window-badge');
+      const dot = document.getElementById('window-dot');
+      const statusText = document.getElementById('window-status-text');
+
+      if (isActiveWindow) {
+        badge.className = 'px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1.5 bg-sage-tint text-sage border border-sage-border';
+        dot.className = 'w-2 h-2 rounded-full bg-sage animate-pulse';
+        statusText.textContent = '06:00–21:00 IST Window Active';
+      } else {
+        badge.className = 'px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1.5 bg-stoneSoft text-taupe border border-borderWarm';
+        dot.className = 'w-2 h-2 rounded-full bg-taupe';
+        statusText.textContent = 'Off-Hours (Active 06:00–21:00 IST)';
+      }
+    }
+    setInterval(updateISTClock, 10000);
+    updateISTClock();
 
     function save() {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(todos));
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
       render();
     }
-
-    function addTodo(text) {
-      todos.unshift({
-        id: Date.now().toString(),
-        text: text.trim(),
-        completed: false,
-        createdAt: new Date().toISOString()
-      });
-      save();
-    }
-
-    function toggleTodo(id) {
-      todos = todos.map(t => t.id === id ? { ...t, completed: !t.completed } : t);
-      save();
-    }
-
-    function deleteTodo(id) {
-      todos = todos.filter(t => t.id !== id);
-      save();
-    }
-
-    function clearCompleted() {
-      todos = todos.filter(t => !t.completed);
-      save();
-    }
-
-    // Export tasks to a downloadable JSON file
-    exportBtn.addEventListener('click', () => {
-      if (todos.length === 0) {
-        showToast('No tasks to export yet!');
-        return;
-      }
-      const dateStr = new Date().toISOString().split('T')[0];
-      const dataStr = JSON.stringify(todos, null, 2);
-      const blob = new Blob([dataStr], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `daily-tasks-backup-${dateStr}.json`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-      showToast('Backup exported!');
-    });
-
-    // Import tasks from a JSON file (merges by ID so nothing is lost)
-    importInput.addEventListener('change', (e) => {
-      const file = e.target.files[0];
-      if (!file) return;
-
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        try {
-          const imported = JSON.parse(event.target.result);
-          if (!Array.isArray(imported)) throw new Error('Invalid format');
-
-          const validTasks = imported.filter(item => item && typeof item.text === 'string');
-          const existingIds = new Set(todos.map(t => t.id));
-
-          let addedCount = 0;
-          validTasks.forEach(task => {
-            const normalizedTask = {
-              id: task.id ? String(task.id) : (Date.now() + Math.random()).toString(),
-              text: task.text.trim(),
-              completed: Boolean(task.completed),
-              createdAt: task.createdAt || new Date().toISOString()
-            };
-            if (!existingIds.has(normalizedTask.id)) {
-              todos.push(normalizedTask);
-              existingIds.add(normalizedTask.id);
-              addedCount++;
-            }
-          });
-
-          save();
-          showToast(`Imported ${addedCount} task(s) successfully!`);
-        } catch (err) {
-          showToast('Invalid JSON backup file.');
-        } finally {
-          importInput.value = ''; // Reset file input so same file can be re-selected if needed
-        }
-      };
-      reader.readAsText(file);
-    });
 
     function escapeHTML(str) {
       return str.replace(/[&<>'"]/g, tag => ({
@@ -228,77 +650,195 @@
       }[tag]));
     }
 
-    function render() {
-      const filtered = todos.filter(t => {
-        if (currentFilter === 'active') return !t.completed;
-        if (currentFilter === 'completed') return t.completed;
-        return true;
-      });
-
-      const total = todos.length;
-      const doneCount = todos.filter(t => t.completed).length;
-      const percent = total === 0 ? 0 : Math.round((doneCount / total) * 100);
-
-      progressText.textContent = `${doneCount} / ${total} done`;
-      progressBar.style.width = `${percent}%`;
-      clearCompletedBtn.classList.toggle('hidden', doneCount === 0);
-
-      list.innerHTML = '';
-      
-      if (filtered.length === 0) {
-        emptyState.classList.remove('hidden');
-      } else {
-        emptyState.classList.add('hidden');
-        filtered.forEach(todo => {
-          const li = document.createElement('li');
-          li.className = `task-enter flex items-center justify-between gap-3 bg-slate-900/90 border border-slate-800/80 rounded-xl px-4 py-3.5 transition hover:border-slate-700 ${todo.completed ? 'opacity-60' : ''}`;
-          
-          li.innerHTML = `
-            <label class="flex items-center gap-3.5 flex-1 cursor-pointer select-none">
-              <input 
-                type="checkbox" 
-                ${todo.completed ? 'checked' : ''} 
-                class="w-5 h-5 rounded-md accent-indigo-500 cursor-pointer"
-                onchange="toggleTodo('${todo.id}')"
-              >
-              <span class="text-sm ${todo.completed ? 'line-through text-slate-500' : 'text-slate-100'} break-all">
-                ${escapeHTML(todo.text)}
-              </span>
-            </label>
-            <button 
-              onclick="deleteTodo('${todo.id}')" 
-              aria-label="Delete task"
-              class="text-slate-500 hover:text-rose-400 p-1 rounded-lg transition"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-          `;
-          list.appendChild(li);
-        });
-      }
+    function toggleTask(id) {
+      tasks = tasks.map(t => t.id === id ? { ...t, completed: !t.completed } : t);
+      save();
     }
 
-    form.addEventListener('submit', e => {
-      e.preventDefault();
-      if (input.value.trim()) {
-        addTodo(input.value);
-        input.value = '';
-      }
+    function deleteTask(id) {
+      tasks = tasks.filter(t => t.id !== id);
+      save();
+      showToast('Item removed');
+    }
+
+    // Reset only a specific frequency group (Daily, Weekly, or Monthly)
+    window.resetGroup = function(groupName, label) {
+      let count = 0;
+      tasks = tasks.map(t => {
+        if (t.group === groupName && t.completed) {
+          count++;
+          return { ...t, completed: false };
+        }
+        return t;
+      });
+      save();
+      showToast(count > 0 ? `Reset ${count} item(s) in ${label}` : `${label} are already unchecked`);
+    };
+
+    // Clear completed custom tasks
+    clearCustomDoneBtn.addEventListener('click', () => {
+      const before = tasks.length;
+      tasks = tasks.filter(t => !(t.group === 'custom' && t.completed));
+      const removed = before - tasks.length;
+      save();
+      showToast(`Cleared ${removed} completed custom task(s)`);
     });
 
-    clearCompletedBtn.addEventListener('click', clearCompleted);
-
-    filterBtns.forEach(btn => {
-      btn.addEventListener('click', () => {
-        currentFilter = btn.dataset.filter;
-        filterBtns.forEach(b => {
-          b.classList.remove('bg-slate-800', 'text-white');
-        });
-        btn.classList.add('bg-slate-800', 'text-white');
-        render();
+    // Restore any deleted default SOP checklist items
+    restoreDefaultsBtn.addEventListener('click', () => {
+      const existingIds = new Set(tasks.map(t => t.id));
+      let added = 0;
+      DEFAULT_CHECKLISTS.forEach(item => {
+        if (!existingIds.has(item.id)) {
+          tasks.push({ ...item });
+          added++;
+        }
       });
+      save();
+      showToast(added > 0 ? `Restored ${added} default SOP item(s)` : 'All default SOP checklists are already present');
+    });
+
+    function renderGroupList(groupKey, ulId, badgeId) {
+      const ul = document.getElementById(ulId);
+      const badge = document.getElementById(badgeId);
+      const groupItems = tasks.filter(t => t.group === groupKey);
+      const doneCount = groupItems.filter(t => t.completed).length;
+
+      badge.textContent = `${doneCount}/${groupItems.length}`;
+      ul.innerHTML = '';
+
+      if (groupKey === 'custom') {
+        const emptyCustom = document.getElementById('empty-custom');
+        emptyCustom.classList.toggle('hidden', groupItems.length > 0);
+        clearCustomDoneBtn.classList.toggle('hidden', doneCount === 0);
+      }
+
+      groupItems.forEach(item => {
+        const li = document.createElement('li');
+        li.className = `task-item flex items-start justify-between gap-3 px-3.5 py-2.5 rounded-xl border ${
+          item.completed ? 'bg-linen/60 border-borderWarm/60 opacity-65' : 'bg-linen border-borderWarm hover:border-taupe/50'
+        }`;
+
+        li.innerHTML = `
+          <label class="flex items-start gap-3 flex-1 cursor-pointer select-none">
+            <input 
+              type="checkbox" 
+              class="custom-check mt-0.5" 
+              ${item.completed ? 'checked' : ''}
+              onchange="toggleTask('${item.id}')"
+            >
+            <div class="flex-1">
+              <span class="text-sm ${item.completed ? 'line-through text-taupe' : 'text-espresso font-medium'} leading-snug block break-words">
+                ${escapeHTML(item.text)}
+              </span>
+              ${item.subnote ? `<span class="text-[11px] text-taupe mt-0.5 block">${escapeHTML(item.subnote)}</span>` : ''}
+            </div>
+          </label>
+          <button 
+            type="button"
+            onclick="deleteTask('${item.id}')"
+            title="Remove item"
+            class="text-taupe/60 hover:text-terracotta p-1 rounded transition shrink-0"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        `;
+        ul.appendChild(li);
+      });
+    }
+
+    function render() {
+      renderGroupList('custom', 'list-custom', 'badge-custom');
+      renderGroupList('daily', 'list-daily', 'badge-daily');
+      renderGroupList('weekly', 'list-weekly', 'badge-weekly');
+      renderGroupList('monthly', 'list-monthly', 'badge-monthly');
+
+      const total = tasks.length;
+      const done = tasks.filter(t => t.completed).length;
+      const pct = total === 0 ? 0 : Math.round((done / total) * 100);
+
+      document.getElementById('overall-progress-text').textContent = `${done} / ${total} (${pct}%)`;
+      document.getElementById('overall-progress-bar').style.width = `${pct}%`;
+    }
+
+    addForm.addEventListener('submit', e => {
+      e.preventDefault();
+      const text = taskInput.value.trim();
+      if (!text) return;
+
+      const group = groupSelect.value;
+      tasks.unshift({
+        id: 'task-' + Date.now(),
+        group,
+        text,
+        subnote: group === 'custom' ? 'Added by Vishnu' : 'Custom SOP Check',
+        isDefault: false,
+        completed: false
+      });
+
+      taskInput.value = '';
+      save();
+      showToast('Task added');
+    });
+
+    // Export JSON Backup
+    exportBtn.addEventListener('click', () => {
+      const dateStr = new Date().toISOString().split('T')[0];
+      const blob = new Blob([JSON.stringify(tasks, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `vishnu-sop-tasks-backup-${dateStr}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      showToast('Backup JSON downloaded');
+    });
+
+    // Import JSON Backup
+    importInput.addEventListener('change', e => {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = ev => {
+        try {
+          const imported = JSON.parse(ev.target.result);
+          if (!Array.isArray(imported)) throw new Error('Invalid JSON');
+
+          const validGroups = ['custom', 'daily', 'weekly', 'monthly'];
+          const existingIds = new Set(tasks.map(t => t.id));
+
+          imported.forEach(item => {
+            if (!item || typeof item.text !== 'string') return;
+            const normalized = {
+              id: item.id ? String(item.id) : 'task-' + Math.random(),
+              group: validGroups.includes(item.group) ? item.group : 'custom',
+              text: item.text.trim(),
+              subnote: item.subnote || '',
+              isDefault: Boolean(item.isDefault),
+              completed: Boolean(item.completed)
+            };
+            if (!existingIds.has(normalized.id)) {
+              tasks.push(normalized);
+              existingIds.add(normalized.id);
+            } else {
+              tasks = tasks.map(t => t.id === normalized.id ? normalized : t);
+            }
+          });
+
+          save();
+          showToast('Backup restored successfully');
+        } catch (err) {
+          showToast('Invalid JSON backup file');
+        } finally {
+          importInput.value = '';
+        }
+      };
+      reader.readAsText(file);
     });
 
     render();
