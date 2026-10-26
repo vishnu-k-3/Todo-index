@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Daily Tasks</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Inter', sans-serif; }
+    .task-enter { animation: fadeIn 0.2s ease-out; }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(4px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen py-8 px-4 sm:px-6">
+
+  <div class="max-w-lg mx-auto">
+    <!-- Header & Progress -->
+    <header class="mb-6">
+      <div class="flex items-center justify-between mb-2">
+        <div>
+          <h1 class="text-2xl font-bold tracking-tight text-white">Daily Focus</h1>
+          <p id="current-date" class="text-xs text-slate-400 mt-0.5"></p>
+        </div>
+        <div class="text-right">
+          <span id="progress-text" class="text-sm font-semibold text-indigo-400">0 / 0 done</span>
+        </div>
+      </div>
+      <!-- Progress Bar -->
+      <div class="w-full bg-slate-800 h-2 rounded-full overflow-hidden">
+        <div id="progress-bar" class="bg-indigo-500 h-full transition-all duration-300 w-0"></div>
+      </div>
+    </header>
+
+    <!-- Add Task Form -->
+    <form id="todo-form" class="mb-6 flex gap-2">
+      <input 
+        type="text" 
+        id="todo-input" 
+        placeholder="Add a daily task..." 
+        required
+        autocomplete="off"
+        class="flex-1 bg-slate-900 border border-slate-800 rounded-xl px-4 py-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition"
+      >
+      <button 
+        type="submit" 
+        class="bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700 text-white font-medium px-5 py-3 rounded-xl text-sm transition shadow-sm"
+      >
+        Add
+      </button>
+    </form>
+
+    <!-- Filter Tabs -->
+    <div class="flex items-center justify-between border-b border-slate-800 pb-3 mb-4 text-xs font-medium text-slate-400">
+      <div class="flex gap-2">
+        <button data-filter="all" class="filter-btn px-3 py-1.5 rounded-lg bg-slate-800 text-white transition">All</button>
+        <button data-filter="active" class="filter-btn px-3 py-1.5 rounded-lg hover:text-slate-200 transition">Pending</button>
+        <button data-filter="completed" class="filter-btn px-3 py-1.5 rounded-lg hover:text-slate-200 transition">Completed</button>
+      </div>
+      <button id="clear-completed" class="hover:text-rose-400 transition hidden">Clear Done</button>
+    </div>
+
+    <!-- Task List -->
+    <ul id="todo-list" class="space-y-2.5"></ul>
+
+    <!-- Empty State -->
+    <div id="empty-state" class="text-center py-12 hidden">
+      <p class="text-slate-500 text-sm">Nothing on the list right now. Add a task above!</p>
+    </div>
+  </div>
+
+  <script>
+    const STORAGE_KEY = 'daily_focus_todos_v1';
+    let todos = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
+    let currentFilter = 'all';
+
+    const form = document.getElementById('todo-form');
+    const input = document.getElementById('todo-input');
+    const list = document.getElementById('todo-list');
+    const emptyState = document.getElementById('empty-state');
+    const progressText = document.getElementById('progress-text');
+    const progressBar = document.getElementById('progress-bar');
+    const clearCompletedBtn = document.getElementById('clear-completed');
+    const filterBtns = document.querySelectorAll('.filter-btn');
+
+    // Display formatted current date
+    document.getElementById('current-date').textContent = new Intl.DateTimeFormat('en-US', {
+      weekday: 'long', month: 'short', day: 'numeric'
+    }).format(new Date());
+
+    function save() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(todos));
+      render();
+    }
+
+    function addTodo(text) {
+      todos.unshift({
+        id: Date.now().toString(),
+        text: text.trim(),
+        completed: false,
+        createdAt: new Date().toISOString()
+      });
+      save();
+    }
+
+    function toggleTodo(id) {
+      todos = todos.map(t => t.id === id ? { ...t, completed: !t.completed } : t);
+      save();
+    }
+
+    function deleteTodo(id) {
+      todos = todos.filter(t => t.id !== id);
+      save();
+    }
+
+    function clearCompleted() {
+      todos = todos.filter(t => !t.completed);
+      save();
+    }
+
+    function escapeHTML(str) {
+      return str.replace(/[&<>'"]/g, tag => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'
+      }[tag]));
+    }
+
+    function render() {
+      const filtered = todos.filter(t => {
+        if (currentFilter === 'active') return !t.completed;
+        if (currentFilter === 'completed') return t.completed;
+        return true;
+      });
+
+      const total = todos.length;
+      const doneCount = todos.filter(t => t.completed).length;
+      const percent = total === 0 ? 0 : Math.round((doneCount / total) * 100);
+
+      progressText.textContent = `${doneCount} / ${total} done`;
+      progressBar.style.width = `${percent}%`;
+      clearCompletedBtn.classList.toggle('hidden', doneCount === 0);
+
+      list.innerHTML = '';
+      
+      if (filtered.length === 0) {
+        emptyState.classList.remove('hidden');
+      } else {
+        emptyState.classList.add('hidden');
+        filtered.forEach(todo => {
+          const li = document.createElement('li');
+          li.className = `task-enter flex items-center justify-between gap-3 bg-slate-900/90 border border-slate-800/80 rounded-xl px-4 py-3.5 transition hover:border-slate-700 ${todo.completed ? 'opacity-60' : ''}`;
+          
+          li.innerHTML = `
+            <label class="flex items-center gap-3.5 flex-1 cursor-pointer select-none">
+              <input 
+                type="checkbox" 
+                ${todo.completed ? 'checked' : ''} 
+                class="w-5 h-5 rounded-md accent-indigo-500 cursor-pointer"
+                onchange="toggleTodo('${todo.id}')"
+              >
+              <span class="text-sm ${todo.completed ? 'line-through text-slate-500' : 'text-slate-100'} break-all">
+                ${escapeHTML(todo.text)}
+              </span>
+            </label>
+            <button 
+              onclick="deleteTodo('${todo.id}')" 
+              aria-label="Delete task"
+              class="text-slate-500 hover:text-rose-400 p-1 rounded-lg transition"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          `;
+          list.appendChild(li);
+        });
+      }
+    }
+
+    form.addEventListener('submit', e => {
+      e.preventDefault();
+      if (input.value.trim()) {
+        addTodo(input.value);
+        input.value = '';
+      }
+    });
+
+    clearCompletedBtn.addEventListener('click', clearCompleted);
+
+    filterBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        currentFilter = btn.dataset.filter;
+        filterBtns.forEach(b => {
+          b.classList.remove('bg-slate-800', 'text-white');
+        });
+        btn.classList.add('bg-slate-800', 'text-white');
+        render();
+      });
+    });
+
+    render();
+  </script>
+</body>
+</html>
