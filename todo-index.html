@@ -15,9 +15,9 @@
     }
   </style>
 </head>
-<body class="bg-slate-950 text-slate-100 min-h-screen py-8 px-4 sm:px-6">
+<body class="bg-slate-950 text-slate-100 min-h-screen py-8 px-4 sm:px-6 flex flex-col justify-between">
 
-  <div class="max-w-lg mx-auto">
+  <div class="max-w-lg w-full mx-auto">
     <!-- Header & Progress -->
     <header class="mb-6">
       <div class="flex items-center justify-between mb-2">
@@ -72,6 +72,37 @@
     </div>
   </div>
 
+  <!-- Footer: Backup & Restore Controls -->
+  <footer class="max-w-lg w-full mx-auto mt-12 pt-4 border-t border-slate-900 flex items-center justify-between text-xs text-slate-400">
+    <span>Data saved locally in browser</span>
+    <div class="flex items-center gap-2">
+      <button 
+        id="export-btn" 
+        type="button"
+        class="flex items-center gap-1.5 bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-800 px-3 py-1.5 rounded-lg transition"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+        </svg>
+        Export JSON
+      </button>
+
+      <label 
+        for="import-input" 
+        class="flex items-center gap-1.5 bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-800 px-3 py-1.5 rounded-lg cursor-pointer transition"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+        </svg>
+        Import JSON
+      </label>
+      <input type="file" id="import-input" accept=".json,application/json" class="hidden">
+    </div>
+  </footer>
+
+  <!-- Status Toast Notification -->
+  <div id="toast" class="fixed bottom-5 right-5 bg-slate-800 border border-slate-700 text-slate-100 text-xs font-medium px-4 py-2.5 rounded-xl shadow-lg opacity-0 pointer-events-none transition-opacity duration-200"></div>
+
   <script>
     const STORAGE_KEY = 'daily_focus_todos_v1';
     let todos = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
@@ -85,11 +116,20 @@
     const progressBar = document.getElementById('progress-bar');
     const clearCompletedBtn = document.getElementById('clear-completed');
     const filterBtns = document.querySelectorAll('.filter-btn');
+    const exportBtn = document.getElementById('export-btn');
+    const importInput = document.getElementById('import-input');
+    const toast = document.getElementById('toast');
 
     // Display formatted current date
     document.getElementById('current-date').textContent = new Intl.DateTimeFormat('en-US', {
       weekday: 'long', month: 'short', day: 'numeric'
     }).format(new Date());
+
+    function showToast(message) {
+      toast.textContent = message;
+      toast.classList.remove('opacity-0');
+      setTimeout(() => toast.classList.add('opacity-0'), 2500);
+    }
 
     function save() {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(todos));
@@ -120,6 +160,67 @@
       todos = todos.filter(t => !t.completed);
       save();
     }
+
+    // Export tasks to a downloadable JSON file
+    exportBtn.addEventListener('click', () => {
+      if (todos.length === 0) {
+        showToast('No tasks to export yet!');
+        return;
+      }
+      const dateStr = new Date().toISOString().split('T')[0];
+      const dataStr = JSON.stringify(todos, null, 2);
+      const blob = new Blob([dataStr], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `daily-tasks-backup-${dateStr}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      showToast('Backup exported!');
+    });
+
+    // Import tasks from a JSON file (merges by ID so nothing is lost)
+    importInput.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        try {
+          const imported = JSON.parse(event.target.result);
+          if (!Array.isArray(imported)) throw new Error('Invalid format');
+
+          const validTasks = imported.filter(item => item && typeof item.text === 'string');
+          const existingIds = new Set(todos.map(t => t.id));
+
+          let addedCount = 0;
+          validTasks.forEach(task => {
+            const normalizedTask = {
+              id: task.id ? String(task.id) : (Date.now() + Math.random()).toString(),
+              text: task.text.trim(),
+              completed: Boolean(task.completed),
+              createdAt: task.createdAt || new Date().toISOString()
+            };
+            if (!existingIds.has(normalizedTask.id)) {
+              todos.push(normalizedTask);
+              existingIds.add(normalizedTask.id);
+              addedCount++;
+            }
+          });
+
+          save();
+          showToast(`Imported ${addedCount} task(s) successfully!`);
+        } catch (err) {
+          showToast('Invalid JSON backup file.');
+        } finally {
+          importInput.value = ''; // Reset file input so same file can be re-selected if needed
+        }
+      };
+      reader.readAsText(file);
+    });
 
     function escapeHTML(str) {
       return str.replace(/[&<>'"]/g, tag => ({
